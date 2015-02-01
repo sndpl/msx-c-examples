@@ -39,9 +39,3 @@
 #define BAKCLR  (*(TINY *)0xf3ea)
 #define BDRCLR  (*(TINY *)0xfe3b)
 #define JIFFY   (*(TINY *)0xfc9e)
-
-#define i2f(v)  ((v) << 6)
-
-#define f2i(v)  ((v) >> 6)
-
-
