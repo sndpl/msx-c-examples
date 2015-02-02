@@ -35,6 +35,7 @@ struct star_struct {
   int x;
   int y;
   char sp;
+  char color;
 };
 
 struct enemy_struct {
@@ -193,7 +194,7 @@ enemy_t *array;
 {
   int c;
   for(c = 0; c < MAX_ENEMIES; c++) {
-    putspr(array->sp, array->x, array->y, (TINY)DRED,(TINY)0);
+    putspr(array->sp, array->x, array->y, (TINY)DRED,(TINY)2);
     ++array;
   }
 }
@@ -221,7 +222,7 @@ enemy_t *array;
         array->age = 0;
       }
     }
-    putspr(array->sp, array->x, array->y, (TINY)DRED,(TINY)0);
+    putspr(array->sp, array->x, array->y, (TINY)DRED,(TINY)2);
     ++array;
   }
 }
@@ -230,7 +231,7 @@ VOID kill_enemy(enemy)
 enemy_t *enemy;
 {
   enemy->active = false;
-  putspr(enemy->sp, 0, 192, (TINY)0,(TINY)0);
+  putspr(enemy->sp, 0, 192, (TINY)0,(TINY)2);
 }
 
 int player_collision(player, enemy)
@@ -239,19 +240,19 @@ enemy_t *enemy;
 {
   int c, dx, dy;
   for(c = 0; c < MAX_ENEMIES; c++) {
-    dx = player->x - enemy->x;
-    dy = player->y - enemy->y;
-    if (dx < 0) {
-      dx = abs(dx);
-    }
-    if (dy < 0) {
-      dy = abs(dy);
-    }
-    if (dx < 12 &&
-        dy < 12 &&
-        enemy->active == true) {
-
-      return 1;
+    if (enemy->active == true) {
+      dx = player->x - enemy->x;
+      dy = player->y - enemy->y;
+      if (dx < 0) {
+        dx = abs(dx);
+      }
+      if (dy < 0) {
+        dy = abs(dy);
+      }
+      if (dx < 12 &&
+          dy < 12) {
+        return 1;
+      }
     }
     ++enemy;
   }
@@ -386,9 +387,15 @@ star_t *array;
   for(c = 0; c < MAX_STARS ; c++) {
     array->x = rnd(192);
     array->y = rnd(175);
-    array->sp = rnd(2);
+    array->sp = rnd(3);
     if (array->sp == 0) {
       array->sp = 1;
+    }
+    array->color = rnd(2);
+    if (array->color == 0) {
+      array->color = WHITE;
+    } else {
+      array->color = GREY;
     }
     ++array;
   }
@@ -409,7 +416,7 @@ star_t *array;
       array->y = 0;
       /* array->x = rnd(192); */
     }
-    pset(array->x, array->y, (TINY)15, (TINY)0);
+    pset(array->x, array->y, (TINY)array->color, (TINY)0);
     ++array;
   }
 }
@@ -478,8 +485,23 @@ VOID main()
   star_t stars[MAX_STARS];
   enemy_t enemies[MAX_ENEMIES];
 
-  static char play_spr[8] = { 0x00, 0x00, 0x81, 0x81, 0xc3, 0xe7, 0x7e, 0x3c };
-  static char bull_spr[8] = { 0x00, 0x00, 0x00, 0x00, 0x81, 0x81, 0x81, 0x81 };
+  static char play_spr[32] = { 0x00,0x00,0x01,0x02,0x05,0x0B,0x09,0x0B,
+0x16,0x22,0x26,0x29,0x19,0x06,0x00,0x00,
+0x00,0x00,0x80,0x40,0xA0,0xD0,0x90,0xD0,
+0x68,0x44,0x64,0x94,0x98,0x60,0x00,0x00 };
+
+  static char bull_spr[32] = { 0x00,0x00,0x00,0x01,0x01,0x01,0x01,0x01,
+0x01,0x01,0x01,0x01,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x80,0x80,0x80,0x80,0x80,
+0x80,0x80,0x80,0x80,0x00,0x00,0x00,0x00};
+
+  static char ene_spr[32] = {0x00,0x00,0x71,0x13,0x1F,0x09,0x1D,0x3F,
+0xFE,0x9F,0x8D,0x86,0x03,0x02,0x84,0xF8,
+0x00,0x00,0x8E,0xC8,0xF8,0x90,0xB8,0xFC,
+0x7F,0xF9,0xB1,0x61,0xC0,0x40,0x21,0x1F};
+
+
+
   static int timer = 0;
   static int star_timer = 0;
   static int score = 0;
@@ -493,10 +515,11 @@ VOID main()
   ginit();
   gicini();
   screen((TINY)2);
-  inispr((TINY)1);
+  inispr((TINY)2);
 
   sprite((TINY)0, play_spr);
   sprite((TINY)1, bull_spr);
+  sprite((TINY)2, ene_spr);
 
 
   for(;;) {
