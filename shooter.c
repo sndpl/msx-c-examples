@@ -20,6 +20,7 @@ struct player_struct {
   int y;
   int vx, vy;
   bool trig;
+  char sp;
 };
 
 /* Bullet data */
@@ -33,14 +34,16 @@ struct bullet_struct {
 struct star_struct {
   int x;
   int y;
-  int sp;
+  char sp;
 };
 
 struct enemy_struct {
   int x;
   int y;
-  int sp;
+  char sp;
   bool active;
+  int age;
+  int range;
 };
 
 typedef struct player_struct player_t;
@@ -50,6 +53,8 @@ typedef struct enemy_struct enemy_t;
 
 #define MAX_BULLET	3
 #define MAX_STARS 15
+#define MAX_ENEMIES 5
+#define PI 3.14159265358979323846
 
 
 
@@ -113,7 +118,7 @@ bullet_t *array;
   for (c = 0; c < MAX_BULLET; c++) {
     if (!array->active) {
       array->active = 1;
-      array->sp = 10 + c;
+      array->sp = 1 + c;
       return array;
     }
   }
@@ -170,11 +175,15 @@ VOID init_enemies(array)
 enemy_t *array;
 {
   int c;
-  for(c = 0; c < 2; c++) {
-    array->x = rnd(192);
-    array->y = rnd(100);
+  for(c = 0; c < MAX_ENEMIES; c++) {
+    array->x = rnd(172);
+    if (array->x < 20) {
+      array->x = 20;
+    }
+    array->y = -rnd(50);
     array->sp = 5 + c;
     array->active = true;
+    array->age = rnd(30);
     ++array;
   }
 }
@@ -183,8 +192,8 @@ VOID draw_enemies(array)
 enemy_t *array;
 {
   int c;
-  for(c = 0; c < 2; c++) {
-    putspr((TINY)array->sp, array->x, array->y, (TINY)DRED,(TINY)0);
+  for(c = 0; c < MAX_ENEMIES; c++) {
+    putspr(array->sp, array->x, array->y, (TINY)DRED,(TINY)0);
     ++array;
   }
 }
@@ -193,18 +202,26 @@ VOID move_enemies(array)
 enemy_t *array;
 {
   int c;
-  for(c = 0; c < 2; c++) {
+  static int sin[30] = {1,1,1,2,2,3,2,2,1,1,1,0,0,0,0,-1,-1,-1,-2,-2,-3,-2,-2,-1,-1,-1,0,0,0,0 };
+
+  for(c = 0; c < MAX_ENEMIES; c++) {
     if (array->active) {
-      array->x++;
+      array->x += sin[array->age];
       array->y++;
       if (array->x > 192) {
-        array->x = 0;
+        array->x = 192;
       }
       if (array->y > 175) {
         array->y = 0;
+        array->x = rnd(172);
+      }
+
+      array->age++;
+      if (array->age > 29) {
+        array->age = 0;
       }
     }
-    putspr((TINY)array->sp, array->x, array->y, (TINY)DRED,(TINY)0);
+    putspr(array->sp, array->x, array->y, (TINY)DRED,(TINY)0);
     ++array;
   }
 }
@@ -213,7 +230,7 @@ VOID kill_enemy(enemy)
 enemy_t *enemy;
 {
   enemy->active = false;
-  putspr((TINY)enemy->sp, 0, 192, (TINY)BLACK,(TINY)0);
+  putspr(enemy->sp, 0, 192, (TINY)0,(TINY)0);
 }
 
 int player_collision(player, enemy)
@@ -221,7 +238,7 @@ player_t *player;
 enemy_t *enemy;
 {
   int c, dx, dy;
-  for(c = 0; c < 2; c++) {
+  for(c = 0; c < MAX_ENEMIES; c++) {
     dx = player->x - enemy->x;
     dy = player->y - enemy->y;
     if (dx < 0) {
@@ -247,21 +264,22 @@ enemy_t *enemy;
 {
   int c, d, dx, dy;
   for (c = 0; c < MAX_BULLET ; c++) {
-    for(d = 0; d < 2; d++) {
-      dx = bullet->x - enemy->x;
-      dy = bullet->y - enemy->y;
-      if (dx < 0) {
-        dx = abs(dx);
-      }
-      if (dy < 0) {
-        dy = abs(dy);
-      }
-      if (dx < 12 &&
-          dy < 12 &&
-          enemy->active == true
-      ) {
-        kill_enemy(enemy);
-        free_bullet(bullet);
+    for(d = 0; d < MAX_ENEMIES; d++) {
+      if (enemy->active == true) {
+        dx = bullet->x - enemy->x;
+        dy = bullet->y - enemy->y;
+        if (dx < 0) {
+          dx = abs(dx);
+        }
+        if (dy < 0) {
+          dy = abs(dy);
+        }
+        if (dx < 12 &&
+            dy < 12
+        ) {
+          kill_enemy(enemy);
+          free_bullet(bullet);
+        }
       }
       ++enemy;
     }
@@ -281,6 +299,7 @@ player_t *player;
   player->x = 128;
   player->y = 96;
   player->vx = player->vy = player->trig = 0;
+  player->sp = 0;
 }
 
 /**
@@ -352,7 +371,7 @@ player_t *player;
     if (player->x > 192) { player->x = 192; }
     if (player->y > 175) { player->y = 175; }
   }
-  putspr((TINY)0,player->x,player->y,(TINY)LYELLOW,(TINY)0);
+  putspr(player->sp,player->x,player->y,(TINY)LYELLOW,(TINY)0);
 }
 
 /* Star functions */
@@ -417,7 +436,7 @@ enemy_t *enemy;
 {
   int c, left;
   left = 0;
-  for(c=0; c < 2; c++) {
+  for(c=0; c < MAX_ENEMIES; c++) {
     if (enemy->active == true) {
       left++;
     }
@@ -433,7 +452,6 @@ VOID game_over()
   int i;
   cls();
   g_print(50,50,text2);
-  for(i=0;i<90000;i++) {};
 }
 
 VOID you_won()
@@ -442,7 +460,14 @@ VOID you_won()
   int i;
   cls();
   g_print(50,50,text3);
-  for(i=0;i<90000;i++) {};
+}
+
+VOID wait(sec)
+int sec;
+{
+  int timer;
+  timer = JIFFY + (sec * 10);
+  while (timer > JIFFY) {}
 }
 
 
@@ -451,7 +476,7 @@ VOID main()
   player_t player;
   bullet_t bullets[MAX_BULLET], *blt;
   star_t stars[MAX_STARS];
-  enemy_t enemies[2];
+  enemy_t enemies[MAX_ENEMIES];
 
   static char play_spr[8] = { 0x00, 0x00, 0x81, 0x81, 0xc3, 0xe7, 0x7e, 0x3c };
   static char bull_spr[8] = { 0x00, 0x00, 0x00, 0x00, 0x81, 0x81, 0x81, 0x81 };
@@ -517,6 +542,7 @@ VOID main()
     } else {
       game_over();
     }
+    wait(2);
   }
 }
 
