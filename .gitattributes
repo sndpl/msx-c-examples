@@ -1,0 +1,7 @@
+* text=auto
+*.c text eol=crlf
+*.h text eol=crlf
+*.mac text eol=crlf
+*.inc text eol=crlf
+*.bat text eol=crlf
+*.asm text eol=crlf

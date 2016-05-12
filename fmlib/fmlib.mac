@@ -1,0 +1,300 @@
+;
+; fmlib.mac : Library for MSX-C
+; by nao-i on 29 May 1990
+; (C) ASCII 11988 for 'search', (C) Isikawa 1990
+; free to use and copy, but no guarantee or support
+;
+        .Z80
+;
+; address of BIOS and system work area
+;
+rdslt   equ   000ch
+calslt  equ   001ch
+enaslt  equ   0024h
+breakv  equ   0f325h    ; CTRL C break vector
+ramad0  equ   0f341h    ; slot # of RAM
+ramad1  equ   0f342h
+ramad2  equ   0f343h
+ramad3  equ   0f344h
+exptbl  equ   0fcc1h
+h.timi  equ   0fd9fh    ; timer interrupt hook
+;
+; address of FM-BIOS jump table
+;
+idstrg  equ   4018h+4
+_wrtopl equ   4110h
+_iniopl equ   4113h
+_mstart equ   4116h
+_mstop  equ   4119h
+_rddata equ   411ch
+_opldrv equ   411fh
+_tstbgm equ   4122h
+;
+; Macros to call FM-BIOS
+CALLFM  MACRO   ADDRESS
+        ld      ix,address
+        ld      iy,(biosslot-1)
+        call    calslt
+        ENDM
+;
+JUMPFM  MACRO   ADDRESS
+        ld      ix,address
+        ld      iy,(biosslot-1)
+        jp      calslt
+        ENDM
+;
+        dseg
+biosslot: ds    1   ; slot of FM-BIOS
+breaks:   ds    2   ; saving CTRL C vector
+p.ontime: ds    2   ; address of interrupt handler
+p.oldhook:ds    2   ; address of saved hook
+;
+        cseg
+;
+ontime:
+        push    af
+        ld      ix,_opldrv
+        ld      iy,0          ; will be modified
+ontime.slot equ $-1
+        call    calslt
+        pop     af
+oldhook:
+        nop
+        nop
+        nop
+        nop
+        nop
+        ret
+sizeof_ontime equ $-ontime
+IF      sizeof_ontime GT 31
+        .PRINTX "ontime routine too big"
+ENDIF
+;
+hooktbl:
+        rst     30h
+        db      0       ; will be modified
+        dw      0       ; will be modified
+toret:
+        ret
+vvv:
+        dw      toret   ; to ignore CTRL+C
+;
+; char fmopen(address)
+; char *address;  /* address of work area */
+;
+;       0 : successful
+;       1 : no FM-BIOS
+;       2 : bad address of work area
+;
+fmopen@::
+        ld      a,2
+        bit     7,h
+        ret     z       ;   address of work area < 8000h
+
+        ld      (p.ontime),hl
+        push    hl
+        ex      de,hl
+        ld      hl,ontime
+        ld      bc,sizeof_ontime
+        ldir            ; transfer ontime routine
+        pop hl
+        push hl
+        ld      de,oldhook-ontime
+        add     hl,de
+        ld      (p.oldhook),hl
+        pop     hl
+        ld      de,32
+        add     hl,de
+        res     0,l     ; make sure address is even
+
+        push    hl
+        call    search
+        ld      a,(biosslot)
+        ld      hl,(p.ontime)
+        ld      de,ontime.slot-ontime
+        add     hl,de
+        ld      (hl),a  ; modify LD IY,??00
+        or      a
+        ld      a,1
+        pop     hl      ; address of work area
+        ret     z       ; no FM-BIOS
+        CALLFM _iniopl
+        ld      h,40h
+        ld      a,(ramad1)   ; because FM-BIOS
+        call    enaslt       ; does not restore slot1
+
+        ld      hl,h.timi
+        ld      de,(p.oldhook)
+        ld      bc,5
+        ldir                    ; save h.timi
+        ld      hl,hooktbl
+        ld      de,h.timi
+        ld      bc,5
+        di
+        ldir                    ; sset h.timi
+        ld      a,(ramad2)
+        ld      (h.timi+1),a
+        ld      hl,(p.ontime)
+        ld      (h.timi+2),hl
+
+        ld      hl,(breakv)
+        ld      (breaks),hl     ; save break vector
+        ld      hl,vvv
+        ld      (breakv),hl     ; set break vector
+        ei
+        xor     a
+        ret
+
+;
+; VOID fmclose()
+;
+fmclose@::
+        di
+        ld      hl,(breaks)
+        ld      (breakv),hl     ; restore break vector
+        ld      hl,breaks
+        ld      hl,(p.oldhook)
+        ld      de,h.timi
+        ld      bc,5
+        ldir                    ; restore h.timi
+        ei
+        ret
+;
+; VOID fmwrite(RegNum, Data)
+; char Regnum:  /* OPLL register number */
+; char Data:    /* Data to write */
+;
+fmwrite@::
+        JUMPFM  _wrtopl
+;
+; void fmotir(aData)
+; char aData[8]
+;
+fmotir@::
+        ld      b,8
+        xor     a
+        ret
+fmotir_loop:
+        ld      e,(hl)
+        inc     hl
+        CALLFM  _wrtopl
+        inc     a
+        djnz    fmotir_loop
+        ret
+;
+; void fmstart(pData, Times)
+; char *pData; /* Pointer to Music Data */
+; char Times; /* Times to play */
+;
+fmstart@::
+        ld      a,e
+        inc     a
+        ret     z       ; make sure that Times !=255
+        dec     a
+        bit     7,h
+        ret     z               ; make sure that pData >= 8000h
+        JUMPFM  _mstart
+;
+; void fmstop()
+;
+fmstop@::
+        JUMPFM  _mstop
+;
+; char *fmread(ptr, num)
+; char *ptr;
+; char num;
+fmread@::
+        ld      a,e
+        JUMPFM  _rddata
+;
+; char fmtest()
+;
+fmtest@::
+        JUMPFM  _tstbgm
+;
+; Search FM-BIOS
+;
+search:
+        ld      b,4
+search_id:
+        push    bc              ; save counter
+        ld      a,4
+        sub     b               ; make primary slot number
+        ld      c,a             ; save it
+        ld      hl,exptbl       ; point expand table
+        ld      e,a
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)          ; get the slot is expanded or not
+        add     a,a             ; expaned?
+        jr      nc,no_expanded  ; no..
+        ld      b,4
+search_exp:
+        push bc                 ; save it
+        ld      a,24h           ; [a]00100100b
+        sub     b               ; make secondary slot number [a]=001000ssb
+        rlca                    ; [a]=01000ss0b
+        rlca                    ; [a]=1000ss00b
+        or      c               ; make slot address [a]=1000ssppb
+        call    chkids          ; Check id string
+        pop     bc              ;  restore counter
+        jr      z,search_found  ;  exit this loop if found
+        djnz    search_exp
+not_found:
+        xor     a
+        ld      (biosslot),a
+        pop     bc
+        djnz    search_id
+        ret
+
+no_expanded:
+        ld      a,c             ; get slot address
+        call    chkids          ; check id string
+        jr      nz,not_found    ; exit this loop
+search_found:
+        pop     bc
+        ret
+
+id_string:
+        db      'OPLL'
+id_string_len   equ $-id_string
+;
+; Check ID string
+; Entry : [A]=slot address to Check
+; Return: Zero flag is set if ID is found
+; Modify: [AF],[DE],[HL]
+;
+chkids:
+        ld      (biosslot),a
+        push    bc              ; save environment
+        ld      hl,idstrg
+        ld      de, id_string
+        ld      b, id_string_len
+chkids_loop:
+        push    af      ; save slot address
+        push    bc      ; save counter
+        push    de      ; save pointer to string
+        call    rdslt   ; read a byte
+        ei              ; leave critical
+        pop     de      ; restore pointer
+        pop     bc      ; restore counter
+        ld      c,a     ; save data
+        ld      a,(de)  ; get character
+        cp      c       ; same ?
+        jr      nz,differ; no..
+        pop     af      ; restore slot address
+        inc     de      ; point next
+        inc     hl
+        djnz    chkids_loop
+        pop     bc      ; restore environment
+        xor     a       ; found set zero flag
+        ret
+;
+differ:
+        pop     af      ; restore slot address
+        pop     bc      ; restore environment
+        xor     a       ; clear zero flag
+        inc     a
+        ret
+;
+        end
