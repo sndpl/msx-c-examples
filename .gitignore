@@ -1,6 +1,4 @@
 # MSX-C excludes
-*.com
-*.mac
 *.rel
 *.sym
 *.tco
