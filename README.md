@@ -1,7 +1,11 @@
-# MSX-C Experiments / Libraries
+# MSX-C Examples / Experiments / Libraries
 
 Use the http://www.lavandeira.net/2014/12/relearning-msx-5-setting-up-the-msx-c-environment-part-1/ blog posts to setup your MSX C environment.
 
+## Disk Copy
+Two versions of a disk copy program. Second version uses memory mapper and video RAM.
+
+TODO: Check why second versions doesn't work, it hangs during check for memory
 
 ## FMLib
 Small library to play music with the FM chip.
