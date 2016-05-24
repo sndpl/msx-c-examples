@@ -5,7 +5,7 @@ Use the http://www.lavandeira.net/2014/12/relearning-msx-5-setting-up-the-msx-c-
 ## Disk Copy
 Two versions of a disk copy program. Second version uses memory mapper and video RAM.
 
-TODO: Check why second versions doesn't work, it hangs during check for memory
+TODO: Check why second version doesn't work, it hangs during check for memory
 
 ## FMLib
 Small library to play music with the FM chip.
