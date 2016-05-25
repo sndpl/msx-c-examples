@@ -1,0 +1,47 @@
+bdos    equ   00005h
+calslt  equ   0001ch
+exptbl  equ   0fcc1h
+chmod   equ   0005fh
+gtstck  equ   000d5h
+gttrig  equ   000d8h
+nwrvrm  equ   00177h
+wrtvdp  equ   00047h
+linl40  equ   0f3aeh
+
+excall macro add
+       ld     iy,(exptbl - 1)
+       ld     ix,add
+       jp     calslt
+
+       endm
+
+ffirst::ex     de,hl
+        push   hl
+        pop    ix
+        ld     b,c
+        ld     c,40h
+        ld     (fnext@ + 2),ix
+        jp     bdos
+
+fnext@::ld      ix,0
+        ld      c,41h
+        jp      bdos
+
+screen::ld      d,a
+        ld      a,e
+        ld      (linl40),a
+        ld      a,d
+        excall  chmod
+
+wtvram::ld      a,e
+        excall nwrvrm
+
+wtvdp@::ld      c,a
+        ld      b,e
+        excall  wrtvdp
+
+stick@::excall gtstck
+
+strig@::excall gttrig
+
+      end
