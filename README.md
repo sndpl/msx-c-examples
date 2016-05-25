@@ -29,5 +29,8 @@ TODO:
 - Update the FMChip detection so it will also find the FM-PAC clones
 - Clean the code
 
+## MapMap
+Small program that shows primary mapper slot with available memory
+
 ## Shooter [WIP]
 My first attempt with MSX-C to create a shooter, needs some heavy refactoring :)
