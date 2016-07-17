@@ -37,5 +37,13 @@ Small program that shows all available memory mappers (DOS2 only).
 Original program written my KonamiMan (2000), ported it to MSX-C and added
 the MemMan detection to it like the assembly version has.
 
+## RSLib
+Small library to communicate with the RS-232-C with a terminal program as example.
+
+TODO: Terminal hangs after startup
+
 ## Shooter [WIP]
 My first attempt with MSX-C to create a shooter, needs some heavy refactoring :)
+
+## Tiny Shell
+Small shell program that lists all .com files that can be excuted (DOS1 and DOS2 version)
