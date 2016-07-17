@@ -32,5 +32,10 @@ TODO:
 ## MapMap
 Small program that shows primary mapper slot with available memory
 
+## Mem
+Small program that shows all available memory mappers (DOS2 only).
+Original program written my KonamiMan (2000), ported it to MSX-C and added
+the MemMan detection to it like the assembly version has.
+
 ## Shooter [WIP]
 My first attempt with MSX-C to create a shooter, needs some heavy refactoring :)
