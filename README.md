@@ -34,7 +34,7 @@ Small program that shows primary mapper slot with available memory
 
 ## Mem
 Small program that shows all available memory mappers (DOS2 only).
-Original program written my KonamiMan (2000), ported it to MSX-C and added
+Original program written by KonamiMan (2000), ported it to MSX-C and added
 the MemMan detection to it like the assembly version has.
 
 ## RSLib
