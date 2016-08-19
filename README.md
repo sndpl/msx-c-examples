@@ -37,6 +37,9 @@ Small program that shows all available memory mappers (DOS2 only).
 Original program written by KonamiMan (2000), ported it to MSX-C and added
 the MemMan detection to it like the assembly version has.
 
+## Moonblaster
+Experiment with the moonblaster driver in MSX-C.
+
 ## RSLib
 Small library to communicate with the RS-232-C with a terminal program as example.
 
