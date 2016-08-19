@@ -1,0 +1,73 @@
+
+;	MSX-C ver 1.20p   (code generator)
+
+	cseg
+?59999:
+	defb	76,79,65,68,32,65,76,69,83,84
+	defb	69,32,49,46,77,66,77,10,0
+?59998:
+	defb	97,108,101,115,116,101,49,0
+?59997:
+	defb	80,76,65,89,73,78,71,32,65,76
+	defb	69,83,84,69,32,49,46,77,66,77
+	defb	10,0
+?59996:
+	defb	73,78,32,77,83,88,45,65,85,68
+	defb	73,79,10,0
+?59995:
+	defb	73,78,32,77,83,88,45,77,85,83
+	defb	73,67,10,0
+?59994:
+	defb	73,78,32,83,84,69,82,69,79,10
+	defb	0
+?59993:
+	defb	83,84,79,80,80,69,68,32,65,76
+	defb	69,83,84,69,49,46,77,66,77,10
+	defb	0
+
+main@:
+	xor	a
+	ld	hl,?59999
+	call	puts@
+	ld	hl,?59998
+	call	mbmloa
+	ld	hl,?59997
+	call	puts@
+	call	mbchip
+	or	a
+	jp	z,@0
+	cp	1
+	jp	z,@1
+	cp	2
+	jp	z,@2
+	jp	@3
+@0:
+	ld	hl,?59996
+	call	puts@
+	jp	@3
+@1:
+	ld	hl,?59995
+	call	puts@
+	jp	@3
+@2:
+	ld	hl,?59994
+	call	puts@
+@3:
+	call	mbplay
+	call	getcha
+	ld	hl,?59993
+	call	puts@
+	call	mbstop
+	ret
+
+
+	public	main@
+	extrn	puts@
+	extrn	mbmloa
+	extrn	mbchip
+	extrn	mbplay
+	extrn	getcha
+	extrn	mbstop
+
+	end
+

@@ -1,0 +1,205 @@
+          .Z80
+BDOS      equ 05h
+DTA       equ 80h
+
+_FOPEN    equ 0fh
+_FCLOSE   equ 10h
+_SETDTA   equ 1ah
+_RDBLK    equ 27h
+
+clrfcb:
+	ld hl,fcb ; Clear the fcb name
+	ld b,37
+	xor a
+clrfcb0:
+	ld (hl),a
+	inc hl
+	djnz clrfcb0
+	ret
+
+; Load filename from hl into filename var
+setfc:
+        push hl
+        call clrfcb
+        ld hl,fcb+0 ; source
+        ld de,fcb+1 ; destination
+        ld bc,36    ; repeat
+        ld (hl),b
+        ldir
+        pop hl          ; source
+        ld de,fcb+1     ; destination
+        ld bc,8        ; repeat
+        ldir
+        ret
+
+; Loop filename till dot and copy to fcb
+; input: HL = filename   (eg BOND.MBM)
+; Changes: B, DE, AF
+setfcb:
+        ld b,8  ; Max size of name
+        ld de,fcb+1 ; Start from position 1, 0 = drive letter
+loopfc:
+        ld a,(hl) ; Load first char
+        or a    ; Check null?
+        ret z
+        cp 2eh  ; compare with ascii code of dot?
+        ret z
+        ld (de),a
+        inc hl
+        inc de
+        dec b   ; Decrease b, when 0 return
+        ret z
+        jr loopfc
+
+;------------------- load MoonBlaster song ----------------
+;
+; Opm: - Zorg ervoor dat voor aanroep de juiste naam in het
+;        FCB is gezet!
+;      - Let erop dat alleen User files ingeladen worden!
+
+mbmload@::
+        push de ; Push DE on the stack
+        call setfcb ; Set the filename
+        call openf ; open file
+        ld hl,(bleng) ; Load hl with bleng value 0??
+        ld de, 8000h ; Get DE from the stack
+        push af ; Push A+F register on stack
+        call loadf ; Load file
+        call closef ; Close file
+        pop af ; Get A+F register from stack
+        ret
+
+;------------------- Load MoonBlaster samplekit -----------
+;
+; Opm: - De R800 mag niet aanstaan bij aanroep!
+;
+
+mbkload@::
+          push de
+          call setfcb
+          call  openf
+          pop de
+          push af
+          LD    DE,08000H
+          LD    HL,56
+          CALL  loadf
+          LD    HL,08000H
+          LD    DE,SMPADR
+          LD    BC,56
+          LDIR
+          LD    A,1
+          LD    (SAMPDT),A
+          LD    HL,04000H
+          LD    DE,08000H
+          CALL  loadf
+          CALL  MOVSMP
+          LD    HL,04000h
+          LD    DE,08000H
+          CALL  loadf
+          CALL  MOVSMP
+          call    closef
+          pop af
+          ret
+
+;------ disk access routines ------
+
+ openf:
+         ld de,fcb ; Load filename
+         ld c,_FOPEN ; Call the bdos fopen function
+         call BDOS
+         ld hl,1     ; TODO Check what these lines do
+         ld (groot),hl
+         dec hl
+         ld (blok),hl
+         ld (blok+2),hl
+         ret
+loadf:
+         push hl ; Push hl on the stack
+         ld c,_SETDTA ; Call the bdos function SETDTA ??
+         call BDOS
+         ld de,fcb ; Load filename
+         pop hl ; Get HL from the stack
+         ld c,_RDBLK ; Call the bdos ReadBlock function
+         call BDOS
+         ret
+closef:
+         ld de,fcb ; Load filename
+         ld c,_FCLOSE ; Class the bdos fclose function
+         call BDOS
+         ret
+
+;------- move samplekit in the audio-ram ------
+
+SAMPDT:  DB    1
+MOVSMP:  LD    A,(SAMPDT)
+    XOR   1
+    LD    (SAMPDT),A
+    OR    A
+    EX    AF,AF'
+    CALL  Z,MOVSM2
+    EX    AF,AF'
+    CALL  NZ,MOVSM3
+    DI
+    LD    A,4
+    OUT   (0C0h),A
+    LD    A,060h
+    OUT   (0C1h),A
+    LD    BC,04000h
+    LD    HL,08000h
+MOVSM6:  LD    A,0Fh
+    OUT   (0C0h),A
+    LD    A,(HL)
+    OUT   (0C1h),A
+    LD    A,4
+    OUT   (0C0h),A
+    LD    A,080h
+    OUT   (0C1h),A
+    INC   HL
+    DEC   BC
+    LD    A,B
+    OR    C
+    JR    Z,MOVSM4
+MOVSM5:  IN    A,(0C0h)
+    BIT   3,A
+    JR    Z,MOVSM5
+    JR    MOVSM6
+MOVSM4:  LD    A,4
+    OUT   (0C0h),A
+    LD    A,078h
+    OUT   (0C1h),A
+    LD    A,080h
+    OUT   (0C1h),A
+    LD    A,7
+    OUT   (0C0h),A
+    LD    A,1
+    OUT   (0C1h),A
+    EI
+    RET
+MOVSM3:  LD    HL,SAMPD3
+    JR    MOVSM7
+MOVSM2:  LD    HL,SAMPD2
+MOVSM7:  LD    B,10
+MOVSM8:  LD    A,(HL)
+    OUT   (0C0h),A
+    INC   HL
+    LD    A,(HL)
+    OUT   (0C1h),A
+    INC   HL
+    DJNZ  MOVSM8
+    RET
+SAMPD2:  DB    004h,078h,004h,080h,007h,001h,007h,060h,008h,000h
+    DB    009h,000h,00ah,000h,00bh,0ffh,00ch,00fh,010h,0f0h
+SAMPD3:  DB    004h,078h,004h,080h,007h,001h,007h,060h,008h,000h
+    DB    009h,000h,00ah,010h,00bh,0ffh,00ch,01fh,010h,0f0h
+
+;
+fcb:            db 0, "        MBM"
+                dw 0
+groot:          dw 0
+bleng:          dw 0
+                db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+blok:           dw 0
+                dw 0
+SMPADR:  DS    56
+;
+          END
