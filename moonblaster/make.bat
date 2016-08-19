@@ -1,6 +1,6 @@
 rem Assemble .MAC files
 
-rem M80 =mbdrv
+M80 =mbdrv
 M80 =mbload
 
 rem Compile and assemble C code
